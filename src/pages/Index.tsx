@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EventMap from '@/components/EventMap';
+import AuthModal from '@/components/AuthModal';
 
 const categories = [
   { id: 'concert', name: 'Концерты', icon: 'Music', color: 'bg-primary' },
@@ -119,6 +120,25 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [savedEvents, setSavedEvents] = useState<number[]>([]);
   const [activeView, setActiveView] = useState<'list' | 'map'>('list');
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleAuthSuccess = (userData: any, token: string) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    setUser(null);
+  };
 
   const filteredEvents = mockEvents.filter((event) => {
     const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
@@ -143,7 +163,34 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-12 animate-fade-in">
+        <header className="text-center mb-8 animate-fade-in">
+          <div className="flex justify-end mb-4">
+            {user ? (
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="font-semibold">{user.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{user.phone}</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={handleLogout}
+                  className="rounded-full"
+                >
+                  <Icon name="LogOut" size={18} className="mr-2" />
+                  Выйти
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={() => setAuthModalOpen(true)}
+                className="bg-gradient-to-r from-primary via-secondary to-accent rounded-full"
+              >
+                <Icon name="User" size={18} className="mr-2" />
+                Войти
+              </Button>
+            )}
+          </div>
+
           <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
             EventHub
           </h1>
@@ -151,6 +198,12 @@ const Index = () => {
             Найди своё идеальное мероприятие в любом городе России
           </p>
         </header>
+
+        <AuthModal 
+          open={authModalOpen} 
+          onOpenChange={setAuthModalOpen}
+          onAuthSuccess={handleAuthSuccess}
+        />
 
         <div className="mb-8 space-y-4 animate-scale-in">
           <div className="flex flex-col md:flex-row gap-4">

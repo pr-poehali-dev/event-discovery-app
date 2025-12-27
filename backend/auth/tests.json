@@ -1,0 +1,53 @@
+{
+  "tests": [
+    {
+      "name": "Register new user",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "register",
+        "phone": "+79999999999",
+        "password": "testpass123",
+        "full_name": "Иванов Иван Иванович",
+        "passport_series": "1234",
+        "passport_number": "567890",
+        "passport_issued_by": "ОВД Центрального района г. Москвы",
+        "passport_issue_date": "2015-05-20",
+        "date_of_birth": "1990-01-15"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "message": "string",
+        "token": "string",
+        "user": {
+          "id": "number",
+          "phone": "string",
+          "full_name": "string",
+          "created_at": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Login existing user",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "login",
+        "phone": "+79999999999",
+        "password": "testpass123"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "message": "string",
+        "token": "string",
+        "user": {
+          "phone": "string",
+          "full_name": "string",
+          "created_at": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
