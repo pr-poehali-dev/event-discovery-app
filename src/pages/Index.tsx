@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -129,6 +130,7 @@ const Index = () => {
   const [selectedEventForPayment, setSelectedEventForPayment] = useState<any>(null);
   const [createEventModalOpen, setCreateEventModalOpen] = useState(false);
   const [dbEvents, setDbEvents] = useState<any[]>([]);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -265,6 +267,40 @@ const Index = () => {
           <p className="text-xl text-muted-foreground">
             Найди полезные мероприятия в любом городе России
           </p>
+          
+          <Button
+            onClick={() => setShowQR(!showQR)}
+            variant="outline"
+            className="mt-4 rounded-full"
+          >
+            <Icon name="Smartphone" size={18} className="mr-2" />
+            {showQR ? 'Скрыть QR-код' : 'Скачать приложение'}
+          </Button>
+
+          {showQR && (
+            <Card className="mt-6 max-w-sm mx-auto animate-scale-in">
+              <CardContent className="pt-6 text-center space-y-4">
+                <div className="bg-white p-4 rounded-lg inline-block">
+                  <QRCodeSVG 
+                    value={window.location.origin}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Установите приложение</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Отсканируйте QR-код камерой телефона для быстрого доступа
+                  </p>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>📱 iOS: Safari → Поделиться → На экран «Домой»</p>
+                  <p>📱 Android: Chrome → Меню → Добавить на главный экран</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </header>
 
         <AuthModal 

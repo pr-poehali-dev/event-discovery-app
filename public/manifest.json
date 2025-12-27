@@ -1,0 +1,18 @@
+{
+  "name": "Польза — Полезные мероприятия",
+  "short_name": "Польза",
+  "description": "Находите и участвуйте в концертах, мастер-классах, спортивных мероприятиях и вечеринках по всей России",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8B5CF6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn.poehali.dev/projects/6576c960-0058-4fa0-a117-1b051088e659/files/298aefc8-cd20-4445-a228-b4bf379146c3.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
