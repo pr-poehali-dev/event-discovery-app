@@ -209,11 +209,18 @@ const Index = () => {
             )}
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            EventHub
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img 
+              src="https://cdn.poehali.dev/projects/6576c960-0058-4fa0-a117-1b051088e659/files/298aefc8-cd20-4445-a228-b4bf379146c3.jpg" 
+              alt="Польза" 
+              className="w-20 h-20 rounded-2xl shadow-lg"
+            />
+            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Польза
+            </h1>
+          </div>
           <p className="text-xl text-muted-foreground">
-            Найди своё идеальное мероприятие в любом городе России
+            Найди полезные мероприятия в любом городе России
           </p>
         </header>
 

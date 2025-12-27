@@ -102,10 +102,10 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            Вход в EventHub
+            Вход в Польза
           </DialogTitle>
           <DialogDescription>
-            Войдите или зарегистрируйтесь для участия в мероприятиях
+            Войдите или зарегистрируйтесь для участия в полезных мероприятиях
           </DialogDescription>
         </DialogHeader>
 
