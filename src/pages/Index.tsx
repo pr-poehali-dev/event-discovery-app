@@ -515,6 +515,11 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
+
+        <footer className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-muted-foreground">
+          <p>© 2025 Польза. Все права защищены.</p>
+          <p className="mt-2">Полезные мероприятия по всей России</p>
+        </footer>
       </div>
     </div>
   );
