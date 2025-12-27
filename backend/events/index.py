@@ -52,7 +52,7 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'event_id': event_id, 'message': 'Мероприятие создано. Оплатите публикацию 100 ₽'})
+                    'body': json.dumps({'event_id': event_id, 'message': 'Мероприятие создано. Оплатите публикацию 150 ₽'})
                 }
 
             elif action == 'pay_publication':
@@ -68,11 +68,11 @@ def handler(event: dict, context) -> dict:
                     }
 
                 payment_id = str(uuid.uuid4())
-                payment_url = f'sbp://pay?order={payment_id}&amount=100'
+                payment_url = f'sbp://pay?order={payment_id}&amount=150'
 
                 cur.execute("""
-                    INSERT INTO event_publications (event_id, organizer_id, payment_id, payment_url, payment_status)
-                    VALUES (%s, %s, %s, %s, 'pending')
+                    INSERT INTO event_publications (event_id, organizer_id, payment_id, payment_url, payment_status, payment_amount)
+                    VALUES (%s, %s, %s, %s, 'pending', 150)
                     RETURNING id
                 """, (event_id, organizer_id, payment_id, payment_url))
                 publication_id = cur.fetchone()[0]
@@ -85,7 +85,7 @@ def handler(event: dict, context) -> dict:
                         'publication_id': publication_id,
                         'payment_url': payment_url,
                         'payment_id': payment_id,
-                        'amount': 100
+                        'amount': 150
                     })
                 }
 

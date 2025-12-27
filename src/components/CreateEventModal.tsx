@@ -160,7 +160,7 @@ const CreateEventModal = ({ open, onOpenChange, userId, onSuccess }: CreateEvent
             Создать мероприятие
           </DialogTitle>
           <DialogDescription>
-            Заплатите 100 ₽ за публикацию, участники заплатят цену которую вы укажете
+            Заплатите 150 ₽ за публикацию, участники заплатят цену которую вы укажете
           </DialogDescription>
         </DialogHeader>
 
@@ -290,7 +290,7 @@ const CreateEventModal = ({ open, onOpenChange, userId, onSuccess }: CreateEvent
               disabled={loading}
               size="lg"
             >
-              {loading ? 'Создание...' : 'Создать и перейти к оплате 100 ₽'}
+              {loading ? 'Создание...' : 'Создать и перейти к оплате 150 ₽'}
             </Button>
           </form>
         )}
@@ -302,7 +302,7 @@ const CreateEventModal = ({ open, onOpenChange, userId, onSuccess }: CreateEvent
             </div>
             
             <div>
-              <h3 className="font-bold text-lg mb-2">Оплата публикации 100 ₽</h3>
+              <h3 className="font-bold text-lg mb-2">Оплата публикации 150 ₽</h3>
               <p className="text-sm text-muted-foreground">
                 Откройте банковское приложение и отсканируйте QR-код
               </p>
