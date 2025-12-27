@@ -7,6 +7,7 @@ import Icon from '@/components/ui/icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EventMap from '@/components/EventMap';
 import AuthModal from '@/components/AuthModal';
+import PaymentModal from '@/components/PaymentModal';
 
 const categories = [
   { id: 'concert', name: 'Концерты', icon: 'Music', color: 'bg-primary' },
@@ -122,6 +123,8 @@ const Index = () => {
   const [activeView, setActiveView] = useState<'list' | 'map'>('list');
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedEventForPayment, setSelectedEventForPayment] = useState<any>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -138,6 +141,21 @@ const Index = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
     setUser(null);
+  };
+
+  const handleParticipate = (event: any) => {
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setSelectedEventForPayment(event);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    if (selectedEventForPayment) {
+      setSavedEvents((prev) => [...prev, selectedEventForPayment.id]);
+    }
   };
 
   const filteredEvents = mockEvents.filter((event) => {
@@ -204,6 +222,17 @@ const Index = () => {
           onOpenChange={setAuthModalOpen}
           onAuthSuccess={handleAuthSuccess}
         />
+
+        {selectedEventForPayment && (
+          <PaymentModal
+            open={paymentModalOpen}
+            onOpenChange={setPaymentModalOpen}
+            eventId={selectedEventForPayment.id}
+            eventTitle={selectedEventForPayment.title}
+            userId={user?.id}
+            onSuccess={handlePaymentSuccess}
+          />
+        )}
 
         <div className="mb-8 space-y-4 animate-scale-in">
           <div className="flex flex-col md:flex-row gap-4">
@@ -326,8 +355,20 @@ const Index = () => {
                           <Icon name="Users" size={16} />
                           <span>{event.attendees} участников</span>
                         </div>
-                        <Button className="w-full mt-4 bg-gradient-to-r from-primary via-secondary to-accent hover:opacity-90 transition-opacity">
-                          Участвовать
+                        <Button 
+                          onClick={() => handleParticipate(event)}
+                          className="w-full mt-4 bg-gradient-to-r from-primary via-secondary to-accent hover:opacity-90 transition-opacity"
+                        >
+                          {isSaved ? (
+                            <>
+                              <Icon name="CheckCircle2" size={18} className="mr-2" />
+                              Зарегистрирован
+                            </>
+                          ) : (
+                            <>
+                              Участвовать за 100 ₽
+                            </>
+                          )}
                         </Button>
                       </CardContent>
                     </Card>
