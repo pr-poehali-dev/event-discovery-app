@@ -424,7 +424,9 @@ const Index = () => {
                             </>
                           ) : (
                             <>
-                              Участвовать за 100 ₽
+                              {event.participant_price === 0 || event.price === 'Бесплатно' 
+                                ? 'Участвовать бесплатно' 
+                                : `Участвовать за ${event.participant_price || event.price}`}
                             </>
                           )}
                         </Button>
