@@ -8,12 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EventMap from '@/components/EventMap';
 import AuthModal from '@/components/AuthModal';
 import PaymentModal from '@/components/PaymentModal';
+import CreateEventModal from '@/components/CreateEventModal';
 
 const categories = [
   { id: 'concert', name: 'Концерты', icon: 'Music', color: 'bg-primary' },
   { id: 'masterclass', name: 'Мастер-классы', icon: 'Palette', color: 'bg-secondary' },
   { id: 'sport', name: 'Спорт', icon: 'Bike', color: 'bg-accent' },
   { id: 'party', name: 'Вечеринки', icon: 'PartyPopper', color: 'bg-primary' },
+  { id: 'lecture', name: 'Лекции', icon: 'GraduationCap', color: 'bg-secondary' },
 ];
 
 const cities = [
@@ -125,13 +127,28 @@ const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedEventForPayment, setSelectedEventForPayment] = useState<any>(null);
+  const [createEventModalOpen, setCreateEventModalOpen] = useState(false);
+  const [dbEvents, setDbEvents] = useState<any[]>([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    loadEvents();
   }, []);
+
+  const loadEvents = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/6dc8c670-1808-406f-b23c-1b48e5c50bad');
+      const data = await response.json();
+      if (response.ok) {
+        setDbEvents(data.events);
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки мероприятий:', err);
+    }
+  };
 
   const handleAuthSuccess = (userData: any, token: string) => {
     setUser(userData);
@@ -152,13 +169,32 @@ const Index = () => {
     setPaymentModalOpen(true);
   };
 
+  const handleCreateEventSuccess = () => {
+    loadEvents();
+  };
+
   const handlePaymentSuccess = () => {
     if (selectedEventForPayment) {
       setSavedEvents((prev) => [...prev, selectedEventForPayment.id]);
     }
   };
 
-  const filteredEvents = mockEvents.filter((event) => {
+  const allEvents = [...mockEvents, ...dbEvents.map(e => ({
+    id: e.id,
+    title: e.title,
+    category: e.category,
+    city: e.city,
+    date: e.date,
+    time: e.time,
+    price: e.participant_price === 0 ? 'Бесплатно' : `${e.participant_price} ₽`,
+    attendees: 0,
+    lat: e.latitude || 55.7558,
+    lng: e.longitude || 37.6173,
+    description: e.description,
+    participant_price: e.participant_price
+  }))];
+
+  const filteredEvents = allEvents.filter((event) => {
     const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
     const matchesCity = selectedCity === 'all' || event.city === selectedCity;
     const matchesSearch =
@@ -175,7 +211,7 @@ const Index = () => {
   };
 
   const getEventCountByCity = (city: string) => {
-    return mockEvents.filter((event) => event.city === city).length;
+    return allEvents.filter((event) => event.city === city).length;
   };
 
   return (
@@ -185,6 +221,13 @@ const Index = () => {
           <div className="flex justify-end mb-4">
             {user ? (
               <div className="flex items-center gap-4">
+                <Button 
+                  onClick={() => setCreateEventModalOpen(true)}
+                  className="bg-gradient-to-r from-primary via-secondary to-accent rounded-full"
+                >
+                  <Icon name="Plus" size={18} className="mr-2" />
+                  Создать мероприятие
+                </Button>
                 <div className="text-right">
                   <p className="font-semibold">{user.full_name}</p>
                   <p className="text-sm text-muted-foreground">{user.phone}</p>
@@ -236,10 +279,18 @@ const Index = () => {
             onOpenChange={setPaymentModalOpen}
             eventId={selectedEventForPayment.id}
             eventTitle={selectedEventForPayment.title}
+            eventPrice={selectedEventForPayment.participant_price || 100}
             userId={user?.id}
             onSuccess={handlePaymentSuccess}
           />
         )}
+
+        <CreateEventModal
+          open={createEventModalOpen}
+          onOpenChange={setCreateEventModalOpen}
+          userId={user?.id}
+          onSuccess={handleCreateEventSuccess}
+        />
 
         <div className="mb-8 space-y-4 animate-scale-in">
           <div className="flex flex-col md:flex-row gap-4">

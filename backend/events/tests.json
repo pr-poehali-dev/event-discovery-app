@@ -1,0 +1,39 @@
+{
+  "tests": [
+    {
+      "name": "Get published events",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "events": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create new event",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "create_event",
+        "organizer_id": 1,
+        "title": "Тестовая лекция",
+        "description": "Описание тестовой лекции",
+        "category": "lecture",
+        "city": "Москва",
+        "event_date": "2025-02-15",
+        "event_time": "18:00",
+        "participant_price": 500,
+        "latitude": 55.7558,
+        "longitude": 37.6173,
+        "max_participants": 50
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "event_id": "number",
+        "message": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

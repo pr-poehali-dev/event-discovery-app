@@ -55,6 +55,7 @@ def create_payment(body: dict) -> dict:
     user_id = body.get('user_id')
     event_id = body.get('event_id')
     event_title = body.get('event_title', 'Мероприятие')
+    event_price = body.get('event_price', 100)
     
     if not user_id or not event_id:
         return {
@@ -89,15 +90,15 @@ def create_payment(body: dict) -> dict:
             payment_id = str(uuid.uuid4())
             
             cur.execute("""
-                INSERT INTO registrations (user_id, event_id, payment_id, payment_status, payment_amount)
-                VALUES (%s, %s, %s, 'pending', 100)
+                INSERT INTO registrations (user_id, event_id, payment_id, payment_status, payment_amount, event_price)
+                VALUES (%s, %s, %s, 'pending', %s, %s)
                 RETURNING id
-            """, (user_id, event_id, payment_id))
+            """, (user_id, event_id, payment_id, event_price, event_price))
             
             registration_id = cur.fetchone()['id']
             conn.commit()
         
-        sbp_url = f"https://qr.nspk.ru/proverkacheka/v1/api/merchant/qr?amount=100&purpose={event_title}"
+        sbp_url = f"https://qr.nspk.ru/proverkacheka/v1/api/merchant/qr?amount={event_price}&purpose={event_title}"
         
         cur.execute("""
             UPDATE registrations 
@@ -112,8 +113,8 @@ def create_payment(body: dict) -> dict:
             'body': json.dumps({
                 'registration_id': registration_id,
                 'payment_url': sbp_url,
-                'amount': 100,
-                'message': 'Оплатите через СБП для завершения регистрации'
+                'amount': event_price,
+                'message': f'Оплатите {event_price} ₽ через СБП для завершения регистрации'
             }),
             'isBase64Encoded': False
         }

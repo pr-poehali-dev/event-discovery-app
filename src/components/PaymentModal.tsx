@@ -9,11 +9,12 @@ interface PaymentModalProps {
   onOpenChange: (open: boolean) => void;
   eventId: number;
   eventTitle: string;
+  eventPrice: number;
   userId: number;
   onSuccess: () => void;
 }
 
-const PaymentModal = ({ open, onOpenChange, eventId, eventTitle, userId, onSuccess }: PaymentModalProps) => {
+const PaymentModal = ({ open, onOpenChange, eventId, eventTitle, eventPrice, userId, onSuccess }: PaymentModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [paymentUrl, setPaymentUrl] = useState('');
@@ -32,7 +33,8 @@ const PaymentModal = ({ open, onOpenChange, eventId, eventTitle, userId, onSucce
           action: 'create_payment',
           user_id: userId,
           event_id: eventId,
-          event_title: eventTitle
+          event_title: eventTitle,
+          event_price: eventPrice
         })
       });
 
@@ -88,7 +90,7 @@ const PaymentModal = ({ open, onOpenChange, eventId, eventTitle, userId, onSucce
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Стоимость регистрации</p>
-                    <p className="text-3xl font-bold">100 ₽</p>
+                    <p className="text-3xl font-bold">{eventPrice} ₽</p>
                   </div>
                   <Icon name="Ticket" size={48} className="text-primary" />
                 </div>
@@ -123,7 +125,7 @@ const PaymentModal = ({ open, onOpenChange, eventId, eventTitle, userId, onSucce
               disabled={loading}
               size="lg"
             >
-              {loading ? 'Создание платежа...' : 'Оплатить 100 ₽'}
+              {loading ? 'Создание платежа...' : `Оплатить ${eventPrice} ₽`}
             </Button>
           </div>
         )}
@@ -139,7 +141,7 @@ const PaymentModal = ({ open, onOpenChange, eventId, eventTitle, userId, onSucce
                 <div>
                   <h3 className="font-bold text-lg mb-2">Оплата через СБП</h3>
                   <p className="text-sm text-muted-foreground">
-                    Откройте банковское приложение и отсканируйте QR-код для оплаты 100 ₽
+                    Откройте банковское приложение и отсканируйте QR-код для оплаты {eventPrice} ₽
                   </p>
                 </div>
 
