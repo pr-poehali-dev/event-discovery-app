@@ -136,6 +136,10 @@ const Index = () => {
     );
   };
 
+  const getEventCountByCity = (city: string) => {
+    return mockEvents.filter((event) => event.city === city).length;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <div className="container mx-auto px-4 py-8">
@@ -165,11 +169,14 @@ const Index = () => {
               className="h-12 px-4 rounded-xl border border-input bg-background text-foreground min-w-[200px]"
             >
               <option value="all">Все города ({cities.length})</option>
-              {cities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
+              {cities.map((city) => {
+                const count = getEventCountByCity(city);
+                return (
+                  <option key={city} value={city}>
+                    {city} {count > 0 ? `(${count})` : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
