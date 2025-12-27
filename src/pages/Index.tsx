@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import EventMap from '@/components/EventMap';
 
 const categories = [
   { id: 'concert', name: 'Концерты', icon: 'Music', color: 'bg-primary' },
@@ -13,7 +14,22 @@ const categories = [
   { id: 'party', name: 'Вечеринки', icon: 'PartyPopper', color: 'bg-primary' },
 ];
 
-const cities = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск', 'Нижний Новгород'];
+const cities = [
+  'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань', 'Нижний Новгород',
+  'Челябинск', 'Самара', 'Омск', 'Ростов-на-Дону', 'Уфа', 'Красноярск', 'Воронеж', 'Пермь',
+  'Волгоград', 'Краснодар', 'Саратов', 'Тюмень', 'Тольятти', 'Ижевск', 'Барнаул', 'Ульяновск',
+  'Иркутск', 'Хабаровск', 'Ярославль', 'Владивосток', 'Махачкала', 'Томск', 'Оренбург',
+  'Кемерово', 'Новокузнецк', 'Рязань', 'Астрахань', 'Набережные Челны', 'Пенза', 'Липецк',
+  'Тула', 'Киров', 'Чебоксары', 'Калининград', 'Брянск', 'Курск', 'Иваново', 'Магнитогорск',
+  'Тверь', 'Ставрополь', 'Симферополь', 'Белгород', 'Сочи', 'Нижний Тагил', 'Архангельск',
+  'Владимир', 'Калуга', 'Чита', 'Смоленск', 'Волжский', 'Курган', 'Череповец', 'Орёл',
+  'Владикавказ', 'Мурманск', 'Саранск', 'Вологда', 'Тамбов', 'Стерлитамак', 'Грозный',
+  'Кострома', 'Петрозаводск', 'Нижневартовск', 'Йошкар-Ола', 'Новороссийск', 'Комсомольск-на-Амуре',
+  'Таганрог', 'Сыктывкар', 'Братск', 'Дзержинск', 'Орск', 'Нальчик', 'Шахты', 'Якутск',
+  'Улан-Удэ', 'Севастополь', 'Ангарск', 'Благовещенск', 'Великий Новгород', 'Псков', 'Энгельс',
+  'Бийск', 'Прокопьевск', 'Рыбинск', 'Балаково', 'Армавир', 'Северодвинск', 'Королёв',
+  'Петропавловск-Камчатский', 'Сызрань', 'Норильск', 'Южно-Сахалинск', 'Каменск-Уральский'
+].sort();
 
 const mockEvents = [
   {
@@ -145,9 +161,9 @@ const Index = () => {
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="h-12 px-4 rounded-xl border border-input bg-background text-foreground"
+              className="h-12 px-4 rounded-xl border border-input bg-background text-foreground min-w-[200px]"
             >
-              <option value="all">Все города</option>
+              <option value="all">Все города ({cities.length})</option>
               {cities.map((city) => (
                 <option key={city} value={city}>
                   {city}
@@ -261,34 +277,21 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="map" className="mt-6">
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                <div className="relative w-full h-[600px] bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                  <div className="text-center space-y-4 p-8">
-                    <Icon name="Map" size={64} className="mx-auto text-primary animate-pulse-subtle" />
-                    <h3 className="text-2xl font-bold">Интерактивная карта</h3>
-                    <p className="text-muted-foreground max-w-md">
-                      Карта с метками всех мероприятий в выбранном городе
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 max-w-2xl">
-                      {filteredEvents.map((event) => {
-                        const category = categories.find((c) => c.id === event.category);
-                        return (
-                          <div
-                            key={event.id}
-                            className="bg-white rounded-lg p-4 shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-                          >
-                            <div className={`w-3 h-3 rounded-full ${category?.color} mb-2 animate-pulse-subtle`} />
-                            <p className="font-semibold text-sm line-clamp-2">{event.title}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{event.city}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {filteredEvents.length > 0 ? (
+              <EventMap 
+                events={filteredEvents} 
+                categories={categories}
+                onEventSelect={(eventId) => console.log('Selected event:', eventId)}
+              />
+            ) : (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Icon name="MapOff" size={48} className="mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-xl text-muted-foreground">Нет событий для отображения</p>
+                  <p className="text-sm text-muted-foreground mt-2">Выберите другой город или категорию</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
 
