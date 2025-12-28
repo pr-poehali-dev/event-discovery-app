@@ -148,6 +148,15 @@ const Index = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Request notification permission
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          console.log('Разрешение на уведомления получено');
+        }
+      });
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
@@ -186,6 +195,18 @@ const Index = () => {
 
   const handleCreateEventSuccess = () => {
     loadEvents();
+    
+    // Send notification about new event
+    if ('Notification' in window && Notification.permission === 'granted') {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification('Мероприятие создано! 🎉', {
+          body: 'Ваше мероприятие опубликовано и доступно другим пользователям',
+          icon: 'https://cdn.poehali.dev/files/IMG_3049.jpeg',
+          badge: 'https://cdn.poehali.dev/files/IMG_3049.jpeg',
+          vibrate: [200, 100, 200]
+        });
+      });
+    }
   };
 
   const handlePaymentSuccess = () => {
