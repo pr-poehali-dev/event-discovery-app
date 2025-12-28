@@ -131,6 +131,7 @@ const Index = () => {
   const [createEventModalOpen, setCreateEventModalOpen] = useState(false);
   const [dbEvents, setDbEvents] = useState<any[]>([]);
   const [showQR, setShowQR] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -138,6 +139,18 @@ const Index = () => {
       setUser(JSON.parse(storedUser));
     }
     loadEvents();
+
+    // PWA install prompt handler
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   const loadEvents = async () => {
@@ -178,6 +191,20 @@ const Index = () => {
   const handlePaymentSuccess = () => {
     if (selectedEventForPayment) {
       setSavedEvents((prev) => [...prev, selectedEventForPayment.id]);
+    }
+  };
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('PWA установлено');
+      }
+      setDeferredPrompt(null);
+      setShowQR(false);
+    } else {
+      setShowQR(!showQR);
     }
   };
 
@@ -269,12 +296,12 @@ const Index = () => {
           </p>
           
           <Button
-            onClick={() => setShowQR(!showQR)}
+            onClick={handleInstallApp}
             variant="outline"
             className="mt-4 rounded-full"
           >
-            <Icon name="Smartphone" size={18} className="mr-2" />
-            {showQR ? 'Скрыть QR-код' : 'Скачать приложение'}
+            <Icon name="Download" size={18} className="mr-2" />
+            {deferredPrompt ? 'Установить приложение' : (showQR ? 'Скрыть QR-код' : 'Скачать приложение')}
           </Button>
 
           {showQR && (
