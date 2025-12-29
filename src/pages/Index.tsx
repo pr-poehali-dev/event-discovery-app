@@ -221,11 +221,18 @@ const Index = () => {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         console.log('PWA установлено');
+        if ('Notification' in window && Notification.permission === 'granted') {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification('Приложение установлено! 🎉', {
+              body: 'Теперь вы можете открывать Пользу прямо с главного экрана',
+              icon: 'https://cdn.poehali.dev/files/IMG_3049.jpeg',
+              badge: 'https://cdn.poehali.dev/files/IMG_3049.jpeg',
+              vibrate: [200, 100, 200]
+            });
+          });
+        }
       }
       setDeferredPrompt(null);
-      setShowQR(false);
-    } else {
-      setShowQR(!showQR);
     }
   };
 
@@ -316,38 +323,15 @@ const Index = () => {
             Найди полезные мероприятия в любом городе России
           </p>
           
-          <Button
-            onClick={handleInstallApp}
-            variant="outline"
-            className="mt-4 rounded-full"
-          >
-            <Icon name="Download" size={18} className="mr-2" />
-            {deferredPrompt ? 'Установить приложение' : (showQR ? 'Скрыть QR-код' : 'Скачать приложение')}
-          </Button>
-
-          {showQR && (
-            <Card className="mt-6 max-w-sm mx-auto animate-scale-in">
-              <CardContent className="pt-6 text-center space-y-4">
-                <div className="bg-white p-4 rounded-lg inline-block">
-                  <QRCodeSVG 
-                    value={window.location.origin}
-                    size={200}
-                    level="H"
-                    includeMargin={true}
-                  />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Установите приложение</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Отсканируйте QR-код камерой телефона для быстрого доступа
-                  </p>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>📱 iOS: Safari → Поделиться → На экран «Домой»</p>
-                  <p>📱 Android: Chrome → Меню → Добавить на главный экран</p>
-                </div>
-              </CardContent>
-            </Card>
+          {deferredPrompt && (
+            <Button
+              onClick={handleInstallApp}
+              variant="outline"
+              className="mt-4 rounded-full"
+            >
+              <Icon name="Download" size={18} className="mr-2" />
+              Установить приложение
+            </Button>
           )}
         </header>
 
