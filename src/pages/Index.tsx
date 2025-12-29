@@ -10,6 +10,7 @@ import EventMap from '@/components/EventMap';
 import AuthModal from '@/components/AuthModal';
 import PaymentModal from '@/components/PaymentModal';
 import CreateEventModal from '@/components/CreateEventModal';
+import { motion } from 'framer-motion';
 
 const categories = [
   { id: 'concert', name: 'Концерты', icon: 'Music', color: 'bg-primary' },
@@ -297,9 +298,19 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50"
+    >
       <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8 animate-fade-in">
+        <motion.header 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="text-center mb-8"
+        >
           <div className="flex justify-end mb-4">
             {user ? (
               <div className="flex items-center gap-4">
@@ -358,7 +369,7 @@ const Index = () => {
               Установить приложение
             </Button>
           )}
-        </header>
+        </motion.header>
 
         <AuthModal 
           open={authModalOpen} 
@@ -385,7 +396,12 @@ const Index = () => {
           onSuccess={handleCreateEventSuccess}
         />
 
-        <div className="mb-8 space-y-4 animate-scale-in">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="mb-8 space-y-4"
+        >
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Icon name="Search" size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -433,9 +449,14 @@ const Index = () => {
               </Button>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'list' | 'map')} className="mb-6">
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'list' | 'map')} className="mb-6">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
             <TabsTrigger value="list" className="flex items-center gap-2">
               <Icon name="List" size={18} />
@@ -458,14 +479,18 @@ const Index = () => {
               </Card>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredEvents.map((event) => {
+                {filteredEvents.map((event, index) => {
                   const category = categories.find((c) => c.id === event.category);
                   const isSaved = savedEvents.includes(event.id);
 
                   return (
-                    <Card
+                    <motion.div
                       key={event.id}
-                      className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 animate-fade-in"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1, duration: 0.3 }}
+                    >
+                      <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
                     >
                       <CardHeader className={`${category?.color} text-white relative`}>
                         <div className="flex justify-between items-start">
@@ -535,6 +560,7 @@ const Index = () => {
                         </Button>
                       </CardContent>
                     </Card>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -559,9 +585,15 @@ const Index = () => {
             )}
           </TabsContent>
         </Tabs>
+        </motion.div>
 
         {savedEvents.length > 0 && (
-          <Card className="mt-8 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+          >
+            <Card className="mt-8 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Icon name="Heart" size={24} className="text-primary fill-primary" />
@@ -581,14 +613,20 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
         )}
 
-        <footer className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-muted-foreground">
+        <motion.footer 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-muted-foreground"
+        >
           <p>© 2025 Польза. Все права защищены.</p>
           <p className="mt-2">Полезные мероприятия по всей России</p>
-        </footer>
+        </motion.footer>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
