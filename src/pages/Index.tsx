@@ -490,8 +490,7 @@ const Index = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1, duration: 0.3 }}
                     >
-                      <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                    >
+                      <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
                       <CardHeader className={`${category?.color} text-white relative`}>
                         <div className="flex justify-between items-start">
                           <Badge variant="secondary" className="mb-2 bg-white/20 text-white border-0">
