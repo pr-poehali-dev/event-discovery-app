@@ -267,6 +267,31 @@ const Index = () => {
     );
   };
 
+  const handleShare = (event: any) => {
+    const shareText = `${event.title}\n${event.city}, ${new Date(event.date).toLocaleDateString('ru-RU')} в ${event.time}\n${event.price}`;
+    const shareUrl = window.location.origin;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: event.title,
+        text: shareText,
+        url: shareUrl
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification('Скопировано! 📋', {
+            body: 'Ссылка на мероприятие скопирована в буфер обмена',
+            icon: 'https://cdn.poehali.dev/files/IMG_3049.jpeg',
+            badge: 'https://cdn.poehali.dev/files/IMG_3049.jpeg',
+            vibrate: [100]
+          });
+        });
+      }
+    }
+  };
+
   const getEventCountByCity = (city: string) => {
     return allEvents.filter((event) => event.city === city).length;
   };
@@ -448,18 +473,28 @@ const Index = () => {
                             <Icon name={category?.icon as any} size={14} className="mr-1" />
                             {category?.name}
                           </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toggleSaveEvent(event.id)}
-                            className="hover:bg-white/20 text-white"
-                          >
-                            <Icon
-                              name={isSaved ? 'Heart' : 'Heart'}
-                              size={20}
-                              className={isSaved ? 'fill-white' : ''}
-                            />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleShare(event)}
+                              className="hover:bg-white/20 text-white"
+                            >
+                              <Icon name="Share2" size={20} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleSaveEvent(event.id)}
+                              className="hover:bg-white/20 text-white"
+                            >
+                              <Icon
+                                name={isSaved ? 'Heart' : 'Heart'}
+                                size={20}
+                                className={isSaved ? 'fill-white' : ''}
+                              />
+                            </Button>
+                          </div>
                         </div>
                         <CardTitle className="text-xl">{event.title}</CardTitle>
                         <CardDescription className="text-white/90">{event.description}</CardDescription>
