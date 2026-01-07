@@ -2,6 +2,7 @@ import json
 import os
 import hashlib
 import secrets
+import random
 from datetime import datetime, timedelta
 from typing import Optional
 import psycopg2
@@ -24,7 +25,7 @@ def get_db_connection():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 def handler(event: dict, context) -> dict:
-    '''API для регистрации и авторизации пользователей'''
+    '''API для регистрации и авторизации пользователей через SMS'''
     method = event.get('httpMethod', 'POST')
     
     if method == 'OPTIONS':
@@ -43,8 +44,10 @@ def handler(event: dict, context) -> dict:
         body = json.loads(event.get('body', '{}'))
         action = body.get('action')
         
-        if action == 'register':
-            return register_user(body)
+        if action == 'send_sms':
+            return send_sms_code(body)
+        elif action == 'verify_sms':
+            return verify_sms_code(body)
         elif action == 'login':
             return login_user(body)
         elif action == 'verify':
@@ -65,27 +68,52 @@ def handler(event: dict, context) -> dict:
             'isBase64Encoded': False
         }
 
-def register_user(body: dict) -> dict:
-    required_fields = ['phone', 'password', 'full_name', 'passport_series', 
-                      'passport_number', 'passport_issued_by', 'passport_issue_date', 'date_of_birth']
+def send_sms_code(body: dict) -> dict:
+    phone = body.get('phone')
     
-    for field in required_fields:
-        if not body.get(field):
-            return {
-                'statusCode': 400,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': f'Поле {field} обязательно'}),
-                'isBase64Encoded': False
-            }
-    
-    phone = body['phone']
-    password = body['password']
-    
-    if len(password) < 6:
+    if not phone:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Пароль должен быть не менее 6 символов'}),
+            'body': json.dumps({'error': 'Укажите номер телефона'}),
+            'isBase64Encoded': False
+        }
+    
+    code = str(random.randint(1000, 9999))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            INSERT INTO sms_codes (phone, code, expires_at)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (phone) DO UPDATE SET code = %s, expires_at = %s, created_at = NOW()
+        """, (phone, code, datetime.now() + timedelta(minutes=5), code, datetime.now() + timedelta(minutes=5)))
+        conn.commit()
+        
+        print(f"SMS код для {phone}: {code}")
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'message': f'Код отправлен. Для теста: {code}'}),
+            'isBase64Encoded': False
+        }
+    
+    finally:
+        cur.close()
+        conn.close()
+
+def verify_sms_code(body: dict) -> dict:
+    phone = body.get('phone')
+    code = body.get('code')
+    
+    if not phone or not code:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Укажите телефон и код'}),
             'isBase64Encoded': False
         }
     
@@ -93,41 +121,66 @@ def register_user(body: dict) -> dict:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
-        cur.execute("SELECT id FROM users WHERE phone = %s", (phone,))
-        existing_user = cur.fetchone()
-        if existing_user:
-            cur.execute("DELETE FROM users WHERE phone = %s", (phone,))
+        cur.execute("""
+            SELECT code, expires_at FROM sms_codes 
+            WHERE phone = %s
+        """, (phone,))
+        
+        sms_data = cur.fetchone()
+        
+        if not sms_data:
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Код не найден'}),
+                'isBase64Encoded': False
+            }
+        
+        if sms_data['expires_at'] < datetime.now():
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Код истёк'}),
+                'isBase64Encoded': False
+            }
+        
+        if sms_data['code'] != code:
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Неверный код'}),
+                'isBase64Encoded': False
+            }
+        
+        cur.execute("SELECT id, phone, full_name FROM users WHERE phone = %s", (phone,))
+        user = cur.fetchone()
+        
+        if not user:
+            cur.execute("""
+                INSERT INTO users (phone, full_name, password_hash, passport_series, passport_number, 
+                                 passport_issued_by, passport_issue_date, date_of_birth)
+                VALUES (%s, %s, '', '', '', '', NULL, NULL)
+                RETURNING id, phone, full_name, created_at
+            """, (phone, phone))
+            user = cur.fetchone()
             conn.commit()
         
-        password_hash = hash_password(password)
-        
-        cur.execute("""
-            INSERT INTO users (phone, password_hash, full_name, passport_series, 
-                             passport_number, passport_issued_by, passport_issue_date, date_of_birth)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, phone, full_name, created_at
-        """, (
-            phone, password_hash, body['full_name'], body['passport_series'],
-            body['passport_number'], body['passport_issued_by'], 
-            body['passport_issue_date'], body['date_of_birth']
-        ))
-        
-        user = cur.fetchone()
+        cur.execute("DELETE FROM sms_codes WHERE phone = %s", (phone,))
         conn.commit()
         
         token = generate_token()
         
         return {
-            'statusCode': 201,
+            'statusCode': 200,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({
-                'message': 'Регистрация успешна',
+                'message': 'Вход выполнен',
                 'token': token,
                 'user': {
                     'id': user['id'],
                     'phone': user['phone'],
-                    'full_name': user['full_name'],
-                    'created_at': user['created_at'].isoformat() if user['created_at'] else None
+                    'full_name': user.get('full_name', user['phone']),
+                    'created_at': user.get('created_at').isoformat() if user.get('created_at') else None
                 }
             }),
             'isBase64Encoded': False

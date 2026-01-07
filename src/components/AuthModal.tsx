@@ -16,6 +16,8 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [step, setStep] = useState<'phone' | 'code'>('phone');
+  const [smsCode, setSmsCode] = useState('');
 
   const [loginData, setLoginData] = useState({
     phone: '',
@@ -23,14 +25,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
   });
 
   const [registerData, setRegisterData] = useState({
-    phone: '',
-    password: '',
-    full_name: '',
-    passport_series: '',
-    passport_number: '',
-    passport_issued_by: '',
-    passport_issue_date: '',
-    date_of_birth: ''
+    phone: ''
   });
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -65,7 +60,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSendSMS = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -75,8 +70,38 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'register',
-          ...registerData
+          action: 'send_sms',
+          phone: registerData.phone
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStep('code');
+      } else {
+        setError(data.error || 'Ошибка отправки SMS');
+      }
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySMS = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/ce3d2a67-2077-41d8-abb6-bcb4c43de030', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify_sms',
+          phone: registerData.phone,
+          code: smsCode
         })
       });
 
@@ -87,8 +112,10 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
         localStorage.setItem('user', JSON.stringify(data.user));
         onAuthSuccess(data.user, data.token);
         onOpenChange(false);
+        setStep('phone');
+        setSmsCode('');
       } else {
-        setError(data.error || 'Ошибка регистрации');
+        setError(data.error || 'Неверный код');
       }
     } catch (err) {
       setError('Ошибка соединения с сервером');
@@ -158,116 +185,86 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
           </TabsContent>
 
           <TabsContent value="register" className="space-y-4 mt-4">
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="reg-phone">Телефон</Label>
-                <Input
-                  id="reg-phone"
-                  placeholder="+7 999 123-45-67"
-                  value={registerData.phone}
-                  onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reg-password">Пароль</Label>
-                <Input
-                  id="reg-password"
-                  type="password"
-                  placeholder="Минимум 6 символов"
-                  value={registerData.password}
-                  onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reg-fullname">ФИО полностью</Label>
-                <Input
-                  id="reg-fullname"
-                  placeholder="Иванов Иван Иванович"
-                  value={registerData.full_name}
-                  onChange={(e) => setRegisterData({ ...registerData, full_name: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            {step === 'phone' ? (
+              <form onSubmit={handleSendSMS} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reg-passport-series">Серия паспорта</Label>
+                  <Label htmlFor="reg-phone">Номер телефона</Label>
                   <Input
-                    id="reg-passport-series"
+                    id="reg-phone"
+                    placeholder="+7 999 123-45-67"
+                    value={registerData.phone}
+                    onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Мы отправим вам SMS с кодом подтверждения
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
+                    <Icon name="AlertCircle" size={18} />
+                    <span className="text-sm">{error}</span>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
+                  disabled={loading}
+                >
+                  {loading ? 'Отправка...' : 'Получить код'}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifySMS} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sms-code">Код из SMS</Label>
+                  <Input
+                    id="sms-code"
                     placeholder="1234"
-                    value={registerData.passport_series}
-                    onChange={(e) => setRegisterData({ ...registerData, passport_series: e.target.value })}
+                    value={smsCode}
+                    onChange={(e) => setSmsCode(e.target.value)}
                     required
+                    maxLength={4}
+                    className="text-center text-2xl tracking-widest"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Код отправлен на номер {registerData.phone}
+                  </p>
                 </div>
+
+                {error && (
+                  <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
+                    <Icon name="AlertCircle" size={18} />
+                    <span className="text-sm">{error}</span>
+                  </div>
+                )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="reg-passport-number">Номер паспорта</Label>
-                  <Input
-                    id="reg-passport-number"
-                    placeholder="567890"
-                    value={registerData.passport_number}
-                    onChange={(e) => setRegisterData({ ...registerData, passport_number: e.target.value })}
-                    required
-                  />
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
+                    disabled={loading}
+                  >
+                    {loading ? 'Проверка...' : 'Подтвердить'}
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => {
+                      setStep('phone');
+                      setSmsCode('');
+                      setError('');
+                    }}
+                  >
+                    Изменить номер
+                  </Button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reg-passport-issued">Кем выдан паспорт</Label>
-                <Input
-                  id="reg-passport-issued"
-                  placeholder="ОВД Центрального района"
-                  value={registerData.passport_issued_by}
-                  onChange={(e) => setRegisterData({ ...registerData, passport_issued_by: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reg-passport-date">Дата выдачи</Label>
-                  <Input
-                    id="reg-passport-date"
-                    type="date"
-                    value={registerData.passport_issue_date}
-                    onChange={(e) => setRegisterData({ ...registerData, passport_issue_date: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="reg-birthdate">Дата рождения</Label>
-                  <Input
-                    id="reg-birthdate"
-                    type="date"
-                    value={registerData.date_of_birth}
-                    onChange={(e) => setRegisterData({ ...registerData, date_of_birth: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
-                  <Icon name="AlertCircle" size={18} />
-                  <span className="text-sm">{error}</span>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
-                disabled={loading}
-              >
-                {loading ? 'Регистрация...' : 'Зарегистрироваться'}
-              </Button>
-            </form>
+              </form>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
