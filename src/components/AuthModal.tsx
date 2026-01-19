@@ -18,6 +18,8 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
   const [error, setError] = useState('');
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [smsCode, setSmsCode] = useState('');
+  const [canResend, setCanResend] = useState(false);
+  const [resendTimer, setResendTimer] = useState(60);
 
   const [loginData, setLoginData] = useState({
     phone: '',
@@ -79,6 +81,19 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
 
       if (response.ok) {
         setStep('code');
+        setCanResend(false);
+        setResendTimer(60);
+        
+        const timer = setInterval(() => {
+          setResendTimer((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              setCanResend(true);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       } else {
         setError(data.error || 'Ошибка отправки SMS');
       }
@@ -232,6 +247,59 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                   <p className="text-xs text-muted-foreground">
                     Код отправлен на номер {registerData.phone}
                   </p>
+                </div>
+
+                <div className="flex items-center justify-center gap-2">
+                  {canResend ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={async () => {
+                        setError('');
+                        setLoading(true);
+                        try {
+                          const response = await fetch('https://functions.poehali.dev/ce3d2a67-2077-41d8-abb6-bcb4c43de030', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              action: 'send_sms',
+                              phone: registerData.phone
+                            })
+                          });
+                          
+                          if (response.ok) {
+                            setCanResend(false);
+                            setResendTimer(60);
+                            const timer = setInterval(() => {
+                              setResendTimer((prev) => {
+                                if (prev <= 1) {
+                                  clearInterval(timer);
+                                  setCanResend(true);
+                                  return 0;
+                                }
+                                return prev - 1;
+                              });
+                            }, 1000);
+                          } else {
+                            const data = await response.json();
+                            setError(data.error || 'Ошибка отправки SMS');
+                          }
+                        } catch (err) {
+                          setError('Ошибка соединения с сервером');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="text-primary hover:text-primary/80"
+                    >
+                      <Icon name="RefreshCw" size={16} className="mr-2" />
+                      Отправить код повторно
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Повторная отправка через {resendTimer} сек
+                    </p>
+                  )}
                 </div>
 
                 {error && (
