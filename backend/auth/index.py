@@ -213,11 +213,27 @@ def login_user(body: dict) -> dict:
         
         user = cur.fetchone()
         
-        if not user or not verify_password(user['password_hash'], password):
+        if not user:
             return {
                 'statusCode': 401,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Неверный телефон или пароль'}),
+                'body': json.dumps({'error': 'Пользователь не найден'}),
+                'isBase64Encoded': False
+            }
+        
+        if not user['password_hash'] or user['password_hash'] == '':
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Используйте вход через SMS'}),
+                'isBase64Encoded': False
+            }
+        
+        if not verify_password(user['password_hash'], password):
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Неверный пароль'}),
                 'isBase64Encoded': False
             }
         
