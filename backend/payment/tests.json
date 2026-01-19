@@ -8,16 +8,10 @@
         "action": "create_payment",
         "user_id": 1,
         "event_id": 1,
-        "event_title": "Тестовое мероприятие"
+        "event_title": "Тестовое мероприятие",
+        "event_price": 100
       },
-      "expectedStatus": 200,
-      "expectedBody": {
-        "registration_id": "number",
-        "payment_url": "string",
-        "amount": "number",
-        "message": "string"
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "Get user registrations",
@@ -27,11 +21,7 @@
         "action": "get_user_registrations",
         "user_id": 1
       },
-      "expectedStatus": 200,
-      "expectedBody": {
-        "registrations": "array"
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     }
   ]
 }

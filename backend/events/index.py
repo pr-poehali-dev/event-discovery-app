@@ -16,7 +16,8 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-User-Id'
             },
-            'body': ''
+            'body': '',
+            'isBase64Encoded': False
         }
 
     dsn = os.environ.get('DATABASE_URL')
@@ -52,7 +53,8 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'event_id': event_id, 'message': 'Мероприятие создано. Оплатите публикацию 150 ₽'})
+                    'body': json.dumps({'event_id': event_id, 'message': 'Мероприятие создано. Оплатите публикацию 150 ₽'}),
+                    'isBase64Encoded': False
                 }
 
             elif action == 'pay_publication':
@@ -64,7 +66,8 @@ def handler(event: dict, context) -> dict:
                     return {
                         'statusCode': 404,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Мероприятие не найдено'})
+                        'body': json.dumps({'error': 'Мероприятие не найдено'}),
+                        'isBase64Encoded': False
                     }
 
                 payment_id = str(uuid.uuid4())
@@ -86,7 +89,8 @@ def handler(event: dict, context) -> dict:
                         'payment_url': payment_url,
                         'payment_id': payment_id,
                         'amount': 150
-                    })
+                    }),
+                    'isBase64Encoded': False
                 }
 
             elif action == 'confirm_publication':
@@ -103,7 +107,8 @@ def handler(event: dict, context) -> dict:
                     return {
                         'statusCode': 404,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Публикация не найдена'})
+                        'body': json.dumps({'error': 'Публикация не найдена'}),
+                        'isBase64Encoded': False
                     }
 
                 event_id = result[0]
@@ -113,7 +118,8 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'message': 'Мероприятие опубликовано'})
+                    'body': json.dumps({'message': 'Мероприятие опубликовано'}),
+                    'isBase64Encoded': False
                 }
 
         elif method == 'GET':
@@ -170,7 +176,8 @@ def handler(event: dict, context) -> dict:
             return {
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'events': events})
+                'body': json.dumps({'events': events}),
+                'isBase64Encoded': False
             }
 
     except Exception as e:
@@ -178,7 +185,8 @@ def handler(event: dict, context) -> dict:
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': str(e)})
+            'body': json.dumps({'error': str(e)}),
+            'isBase64Encoded': False
         }
     finally:
         cur.close()
@@ -187,5 +195,6 @@ def handler(event: dict, context) -> dict:
     return {
         'statusCode': 405,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'error': 'Method not allowed'})
+        'body': json.dumps({'error': 'Method not allowed'}),
+        'isBase64Encoded': False
     }

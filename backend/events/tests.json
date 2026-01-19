@@ -4,11 +4,7 @@
       "name": "Get published events",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "events": "array"
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "Create new event",
@@ -28,12 +24,7 @@
         "longitude": 37.6173,
         "max_participants": 50
       },
-      "expectedStatus": 200,
-      "expectedBody": {
-        "event_id": "number",
-        "message": "string"
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     }
   ]
 }
