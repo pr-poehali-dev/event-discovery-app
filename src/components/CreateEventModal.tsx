@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
+import API_URLS from '@/config/api';
 
 interface CreateEventModalProps {
   open: boolean;
@@ -79,7 +80,7 @@ const CreateEventModal = ({ open, onOpenChange, userId, onSuccess }: CreateEvent
   const handlePayPublication = async (evtId: number) => {
     setLoading(true);
     try {
-      const response = await fetch('https://functions.poehali.dev/6dc8c670-1808-406f-b23c-1b48e5c50bad', {
+      const response = await fetch(API_URLS.events, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,7 +108,7 @@ const CreateEventModal = ({ open, onOpenChange, userId, onSuccess }: CreateEvent
   const handleConfirmPayment = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://functions.poehali.dev/6dc8c670-1808-406f-b23c-1b48e5c50bad', {
+      const response = await fetch(API_URLS.events, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

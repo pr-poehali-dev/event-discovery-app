@@ -11,6 +11,7 @@ import AuthModal from '@/components/AuthModal';
 import PaymentModal from '@/components/PaymentModal';
 import CreateEventModal from '@/components/CreateEventModal';
 import { motion } from 'framer-motion';
+import API_URLS from '@/config/api';
 
 const categories = [
   { id: 'concert', name: 'Концерты', icon: 'Music', color: 'bg-primary' },
@@ -165,7 +166,7 @@ const Index = () => {
 
   const loadEvents = async () => {
     try {
-      const response = await fetch('https://functions.poehali.dev/6dc8c670-1808-406f-b23c-1b48e5c50bad');
+      const response = await fetch(API_URLS.events);
       const data = await response.json();
       if (response.ok) {
         setDbEvents(data.events);

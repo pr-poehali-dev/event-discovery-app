@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
+import API_URLS from '@/config/api';
 
 interface PaymentModalProps {
   open: boolean;
@@ -26,7 +27,7 @@ const PaymentModal = ({ open, onOpenChange, eventId, eventTitle, eventPrice, use
     setLoading(true);
 
     try {
-      const response = await fetch('https://functions.poehali.dev/1bf6286a-7e9f-4479-8bb0-23483e1220c4', {
+      const response = await fetch(API_URLS.payment, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

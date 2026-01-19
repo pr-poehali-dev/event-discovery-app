@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
+import API_URLS from '@/config/api';
+import API_URLS from '@/config/api';
 
 interface AuthModalProps {
   open: boolean;
@@ -36,7 +38,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
     setLoading(true);
 
     try {
-      const response = await fetch('https://functions.poehali.dev/ce3d2a67-2077-41d8-abb6-bcb4c43de030', {
+      const response = await fetch(API_URLS.auth, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,7 +70,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
     setLoading(true);
 
     try {
-      const response = await fetch('https://functions.poehali.dev/ce3d2a67-2077-41d8-abb6-bcb4c43de030', {
+      const response = await fetch(API_URLS.auth, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -110,7 +112,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
     setLoading(true);
 
     try {
-      const response = await fetch('https://functions.poehali.dev/ce3d2a67-2077-41d8-abb6-bcb4c43de030', {
+      const response = await fetch(API_URLS.auth, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -258,7 +260,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                         setError('');
                         setLoading(true);
                         try {
-                          const response = await fetch('https://functions.poehali.dev/ce3d2a67-2077-41d8-abb6-bcb4c43de030', {
+                          const response = await fetch(API_URLS.auth, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
