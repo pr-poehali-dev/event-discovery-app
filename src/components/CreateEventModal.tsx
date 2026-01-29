@@ -52,7 +52,7 @@ const CreateEventModal = ({ open, onOpenChange, userId, onSuccess }: CreateEvent
     setLoading(true);
 
     try {
-      const response = await fetch('https://functions.poehali.dev/6dc8c670-1808-406f-b23c-1b48e5c50bad', {
+      const response = await fetch(API_URLS.events, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
