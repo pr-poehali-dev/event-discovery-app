@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import API_URLS from '@/config/api';
-import API_URLS from '@/config/api';
 
 interface AuthModalProps {
   open: boolean;
