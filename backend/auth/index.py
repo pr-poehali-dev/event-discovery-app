@@ -3,6 +3,9 @@ import os
 import hashlib
 import secrets
 import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from typing import Optional
 import psycopg2
@@ -23,6 +26,35 @@ def generate_token() -> str:
 
 def get_db_connection():
     return psycopg2.connect(os.environ['DATABASE_URL'])
+
+def send_email(to_email: str, subject: str, body: str) -> bool:
+    try:
+        smtp_host = os.environ.get('SMTP_HOST')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_USER')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        
+        if not all([smtp_host, smtp_user, smtp_password]):
+            print("SMTP настройки не заполнены")
+            return False
+        
+        msg = MIMEMultipart('alternative')
+        msg['From'] = smtp_user
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        
+        html_part = MIMEText(body, 'html')
+        msg.attach(html_part)
+        
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+        
+        return True
+    except Exception as e:
+        print(f"Ошибка отправки email: {str(e)}")
+        return False
 
 def handler(event: dict, context) -> dict:
     '''API для регистрации и авторизации пользователей через email и пароль'''
@@ -357,14 +389,37 @@ def request_password_reset(body: dict) -> dict:
         """, (user['id'], reset_token, expires_at))
         conn.commit()
         
-        print(f"Ссылка для восстановления пароля: {reset_token}")
+        email_subject = "Восстановление пароля - Польза"
+        email_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2 style="color: #4F46E5;">Восстановление пароля</h2>
+            <p>Вы запросили восстановление пароля для вашего аккаунта.</p>
+            <p>Используйте этот токен для восстановления:</p>
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <code style="font-size: 16px; color: #1f2937;">{reset_token}</code>
+            </div>
+            <p>Токен действителен в течение 1 часа.</p>
+            <p>Если вы не запрашивали восстановление пароля, проигнорируйте это письмо.</p>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="font-size: 12px; color: #6b7280;">С уважением, команда Польза</p>
+        </body>
+        </html>
+        """
+        
+        email_sent = send_email(email, email_subject, email_body)
+        
+        if email_sent:
+            print(f"Email отправлен на {email}")
+        else:
+            print(f"Ошибка отправки email. Токен для теста: {reset_token}")
         
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({
                 'message': 'Ссылка для восстановления отправлена на email',
-                'reset_token': reset_token
+                'reset_token': reset_token if not email_sent else None
             }),
             'isBase64Encoded': False
         }
