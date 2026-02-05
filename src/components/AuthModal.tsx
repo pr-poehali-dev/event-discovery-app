@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,6 @@ interface AuthModalProps {
 }
 
 const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'phone' | 'code'>('phone');
@@ -22,46 +21,11 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
   const [canResend, setCanResend] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
 
-  const [loginData, setLoginData] = useState({
-    phone: '',
-    password: ''
-  });
-
-  const [registerData, setRegisterData] = useState({
+  const [phoneData, setPhoneData] = useState({
     phone: ''
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
 
-    try {
-      const response = await fetch(API_URLS.auth, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'login',
-          ...loginData
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        onAuthSuccess(data.user, data.token);
-        onOpenChange(false);
-      } else {
-        setError(data.error || 'Ошибка входа');
-      }
-    } catch (err) {
-      setError('Ошибка соединения с сервером');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSendSMS = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +38,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'send_sms',
-          phone: registerData.phone
+          phone: phoneData.phone
         })
       });
 
@@ -116,7 +80,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'verify_sms',
-          phone: registerData.phone,
+          phone: phoneData.phone,
           code: smsCode
         })
       });
@@ -152,55 +116,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'register')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Вход</TabsTrigger>
-            <TabsTrigger value="register">Регистрация</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="login" className="space-y-4 mt-4">
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="login-phone">Телефон</Label>
-                <Input
-                  id="login-phone"
-                  placeholder="+7 999 123-45-67"
-                  value={loginData.phone}
-                  onChange={(e) => setLoginData({ ...loginData, phone: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Пароль</Label>
-                <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="Введите пароль"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
-                  <Icon name="AlertCircle" size={18} />
-                  <span className="text-sm">{error}</span>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
-                disabled={loading}
-              >
-                {loading ? 'Вход...' : 'Войти'}
-              </Button>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="register" className="space-y-4 mt-4">
+        <div className="space-y-4 mt-4">
             {step === 'phone' ? (
               <form onSubmit={handleSendSMS} className="space-y-4">
                 <div className="space-y-2">
@@ -208,8 +124,8 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                   <Input
                     id="reg-phone"
                     placeholder="+7 999 123-45-67"
-                    value={registerData.phone}
-                    onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
+                    value={phoneData.phone}
+                    onChange={(e) => setPhoneData({ ...phoneData, phone: e.target.value })}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
@@ -246,7 +162,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                     className="text-center text-2xl tracking-widest"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Код отправлен на номер {registerData.phone}
+                    Код отправлен на номер {phoneData.phone}
                   </p>
                 </div>
 
@@ -264,7 +180,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               action: 'send_sms',
-                              phone: registerData.phone
+                              phone: phoneData.phone
                             })
                           });
                           
@@ -334,8 +250,7 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                 </div>
               </form>
             )}
-          </TabsContent>
-        </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );
