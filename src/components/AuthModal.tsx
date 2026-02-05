@@ -137,10 +137,12 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess('Ссылка для восстановления отправлена на email');
         if (data.reset_token) {
+          setSuccess(`Токен для восстановления: ${data.reset_token}`);
           setResetData({ ...resetData, token: data.reset_token });
           setResetStep('password');
+        } else {
+          setSuccess('Ссылка для восстановления отправлена на email');
         }
       } else {
         setError(data.error || 'Ошибка восстановления');
