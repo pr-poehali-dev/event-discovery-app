@@ -154,6 +154,9 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                   <Label htmlFor="sms-code">Код из SMS</Label>
                   <Input
                     id="sms-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     placeholder="1234"
                     value={smsCode}
                     onChange={(e) => setSmsCode(e.target.value)}
