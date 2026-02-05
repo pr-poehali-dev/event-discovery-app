@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,20 +14,33 @@ interface AuthModalProps {
 }
 
 const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'reset'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
-  const [smsCode, setSmsCode] = useState('');
-  const [canResend, setCanResend] = useState(false);
-  const [resendTimer, setResendTimer] = useState(60);
+  const [success, setSuccess] = useState('');
 
-  const [phoneData, setPhoneData] = useState({
-    phone: ''
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: ''
   });
 
+  const [registerData, setRegisterData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    full_name: ''
+  });
 
+  const [resetData, setResetData] = useState({
+    email: '',
+    token: '',
+    password: '',
+    confirmPassword: ''
+  });
 
-  const handleSendSMS = async (e: React.FormEvent) => {
+  const [resetStep, setResetStep] = useState<'email' | 'password'>('email');
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -37,51 +50,8 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'send_sms',
-          phone: phoneData.phone
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setStep('code');
-        setCanResend(false);
-        setResendTimer(60);
-        
-        const timer = setInterval(() => {
-          setResendTimer((prev) => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              setCanResend(true);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        setError(data.error || 'Ошибка отправки SMS');
-      }
-    } catch (err) {
-      setError('Ошибка соединения с сервером');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifySMS = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const response = await fetch(API_URLS.auth, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verify_sms',
-          phone: phoneData.phone,
-          code: smsCode
+          action: 'login',
+          ...loginData
         })
       });
 
@@ -92,10 +62,135 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
         localStorage.setItem('user', JSON.stringify(data.user));
         onAuthSuccess(data.user, data.token);
         onOpenChange(false);
-        setStep('phone');
-        setSmsCode('');
       } else {
-        setError(data.error || 'Неверный код');
+        setError(data.error || 'Ошибка входа');
+      }
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (registerData.password !== registerData.confirmPassword) {
+      setError('Пароли не совпадают');
+      setLoading(false);
+      return;
+    }
+
+    if (registerData.password.length < 6) {
+      setError('Пароль должен быть не менее 6 символов');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(API_URLS.auth, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'register',
+          email: registerData.email,
+          password: registerData.password,
+          full_name: registerData.full_name
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        onAuthSuccess(data.user, data.token);
+        onOpenChange(false);
+      } else {
+        setError(data.error || 'Ошибка регистрации');
+      }
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRequestReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const response = await fetch(API_URLS.auth, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'request_reset',
+          email: resetData.email
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Ссылка для восстановления отправлена на email');
+        if (data.reset_token) {
+          setResetData({ ...resetData, token: data.reset_token });
+          setResetStep('password');
+        }
+      } else {
+        setError(data.error || 'Ошибка восстановления');
+      }
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (resetData.password !== resetData.confirmPassword) {
+      setError('Пароли не совпадают');
+      setLoading(false);
+      return;
+    }
+
+    if (resetData.password.length < 6) {
+      setError('Пароль должен быть не менее 6 символов');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(API_URLS.auth, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset_password',
+          token: resetData.token,
+          password: resetData.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Пароль успешно изменён');
+        setTimeout(() => {
+          setActiveTab('login');
+          setResetStep('email');
+          setResetData({ email: '', token: '', password: '', confirmPassword: '' });
+        }, 1500);
+      } else {
+        setError(data.error || 'Ошибка изменения пароля');
       }
     } catch (err) {
       setError('Ошибка соединения с сервером');
@@ -116,20 +211,136 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
-            {step === 'phone' ? (
-              <form onSubmit={handleSendSMS} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'register' | 'reset')}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="login">Вход</TabsTrigger>
+            <TabsTrigger value="register">Регистрация</TabsTrigger>
+            <TabsTrigger value="reset">Восстановление</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login" className="space-y-4 mt-4">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="example@mail.ru"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Пароль</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="Введите пароль"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
+                  <Icon name="AlertCircle" size={18} />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
+                disabled={loading}
+              >
+                {loading ? 'Вход...' : 'Войти'}
+              </Button>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="register" className="space-y-4 mt-4">
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reg-name">Имя</Label>
+                <Input
+                  id="reg-name"
+                  placeholder="Иван Иванов"
+                  value={registerData.full_name}
+                  onChange={(e) => setRegisterData({ ...registerData, full_name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reg-email">Email</Label>
+                <Input
+                  id="reg-email"
+                  type="email"
+                  placeholder="example@mail.ru"
+                  value={registerData.email}
+                  onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reg-password">Пароль</Label>
+                <Input
+                  id="reg-password"
+                  type="password"
+                  placeholder="Минимум 6 символов"
+                  value={registerData.password}
+                  onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reg-confirm">Подтвердите пароль</Label>
+                <Input
+                  id="reg-confirm"
+                  type="password"
+                  placeholder="Повторите пароль"
+                  value={registerData.confirmPassword}
+                  onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
+                  <Icon name="AlertCircle" size={18} />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
+                disabled={loading}
+              >
+                {loading ? 'Регистрация...' : 'Зарегистрироваться'}
+              </Button>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="reset" className="space-y-4 mt-4">
+            {resetStep === 'email' ? (
+              <form onSubmit={handleRequestReset} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reg-phone">Номер телефона</Label>
+                  <Label htmlFor="reset-email">Email</Label>
                   <Input
-                    id="reg-phone"
-                    placeholder="+7 999 123-45-67"
-                    value={phoneData.phone}
-                    onChange={(e) => setPhoneData({ ...phoneData, phone: e.target.value })}
+                    id="reset-email"
+                    type="email"
+                    placeholder="example@mail.ru"
+                    value={resetData.email}
+                    onChange={(e) => setResetData({ ...resetData, email: e.target.value })}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Мы отправим вам SMS с кодом подтверждения
+                    Мы отправим ссылку для восстановления пароля
                   </p>
                 </div>
 
@@ -140,92 +351,69 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                   </div>
                 )}
 
+                {success && (
+                  <div className="bg-green-50 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                    <Icon name="CheckCircle" size={18} />
+                    <span className="text-sm">{success}</span>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
                   disabled={loading}
                 >
-                  {loading ? 'Отправка...' : 'Получить код'}
+                  {loading ? 'Отправка...' : 'Восстановить пароль'}
                 </Button>
               </form>
             ) : (
-              <form onSubmit={handleVerifySMS} className="space-y-4">
+              <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="sms-code">Код из SMS</Label>
+                  <Label htmlFor="reset-token">Токен восстановления</Label>
                   <Input
-                    id="sms-code"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    placeholder="1234"
-                    value={smsCode}
-                    onChange={(e) => setSmsCode(e.target.value)}
+                    id="reset-token"
+                    placeholder="Вставьте токен из письма"
+                    value={resetData.token}
+                    onChange={(e) => setResetData({ ...resetData, token: e.target.value })}
                     required
-                    maxLength={4}
-                    className="text-center text-2xl tracking-widest"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Код отправлен на номер {phoneData.phone}
-                  </p>
                 </div>
 
-                <div className="flex items-center justify-center gap-2">
-                  {canResend ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={async () => {
-                        setError('');
-                        setLoading(true);
-                        try {
-                          const response = await fetch(API_URLS.auth, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              action: 'send_sms',
-                              phone: phoneData.phone
-                            })
-                          });
-                          
-                          if (response.ok) {
-                            setCanResend(false);
-                            setResendTimer(60);
-                            const timer = setInterval(() => {
-                              setResendTimer((prev) => {
-                                if (prev <= 1) {
-                                  clearInterval(timer);
-                                  setCanResend(true);
-                                  return 0;
-                                }
-                                return prev - 1;
-                              });
-                            }, 1000);
-                          } else {
-                            const data = await response.json();
-                            setError(data.error || 'Ошибка отправки SMS');
-                          }
-                        } catch (err) {
-                          setError('Ошибка соединения с сервером');
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      className="text-primary hover:text-primary/80"
-                    >
-                      <Icon name="RefreshCw" size={16} className="mr-2" />
-                      Отправить код повторно
-                    </Button>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Повторная отправка через {resendTimer} сек
-                    </p>
-                  )}
+                <div className="space-y-2">
+                  <Label htmlFor="reset-new-password">Новый пароль</Label>
+                  <Input
+                    id="reset-new-password"
+                    type="password"
+                    placeholder="Минимум 6 символов"
+                    value={resetData.password}
+                    onChange={(e) => setResetData({ ...resetData, password: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reset-confirm-password">Подтвердите пароль</Label>
+                  <Input
+                    id="reset-confirm-password"
+                    type="password"
+                    placeholder="Повторите пароль"
+                    value={resetData.confirmPassword}
+                    onChange={(e) => setResetData({ ...resetData, confirmPassword: e.target.value })}
+                    required
+                  />
                 </div>
 
                 {error && (
                   <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
                     <Icon name="AlertCircle" size={18} />
                     <span className="text-sm">{error}</span>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="bg-green-50 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                    <Icon name="CheckCircle" size={18} />
+                    <span className="text-sm">{success}</span>
                   </div>
                 )}
 
@@ -235,25 +423,22 @@ const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
                     className="w-full bg-gradient-to-r from-primary via-secondary to-accent"
                     disabled={loading}
                   >
-                    {loading ? 'Проверка...' : 'Подтвердить'}
+                    {loading ? 'Изменение...' : 'Изменить пароль'}
                   </Button>
-                  
+
                   <Button
                     type="button"
                     variant="ghost"
                     className="w-full"
-                    onClick={() => {
-                      setStep('phone');
-                      setSmsCode('');
-                      setError('');
-                    }}
+                    onClick={() => setResetStep('email')}
                   >
-                    Изменить номер
+                    Назад
                   </Button>
                 </div>
               </form>
             )}
-        </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

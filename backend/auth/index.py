@@ -25,7 +25,7 @@ def get_db_connection():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 def handler(event: dict, context) -> dict:
-    '''API для регистрации и авторизации пользователей через SMS'''
+    '''API для регистрации и авторизации пользователей через email и пароль'''
     method = event.get('httpMethod', 'POST')
     
     if method == 'OPTIONS':
@@ -44,12 +44,14 @@ def handler(event: dict, context) -> dict:
         body = json.loads(event.get('body', '{}'))
         action = body.get('action')
         
-        if action == 'send_sms':
-            return send_sms_code(body)
-        elif action == 'verify_sms':
-            return verify_sms_code(body)
+        if action == 'register':
+            return register_user(body)
         elif action == 'login':
             return login_user(body)
+        elif action == 'request_reset':
+            return request_password_reset(body)
+        elif action == 'reset_password':
+            return reset_password(body)
         elif action == 'verify':
             return verify_token(event)
         else:
@@ -190,15 +192,84 @@ def verify_sms_code(body: dict) -> dict:
         cur.close()
         conn.close()
 
-def login_user(body: dict) -> dict:
-    phone = body.get('phone')
+def register_user(body: dict) -> dict:
+    email = body.get('email')
     password = body.get('password')
+    full_name = body.get('full_name', '')
+    phone = body.get('phone', '')
     
-    if not phone or not password:
+    if not email or not password:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Укажите телефон и пароль'}),
+            'body': json.dumps({'error': 'Укажите email и пароль'}),
+            'isBase64Encoded': False
+        }
+    
+    if len(password) < 6:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Пароль должен быть не менее 6 символов'}),
+            'isBase64Encoded': False
+        }
+    
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        cur.execute("SELECT id FROM t_p2283616_event_discovery_app.users WHERE email = %s", (email,))
+        if cur.fetchone():
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Пользователь с таким email уже существует'}),
+                'isBase64Encoded': False
+            }
+        
+        password_hash = hash_password(password)
+        
+        cur.execute("""
+            INSERT INTO t_p2283616_event_discovery_app.users 
+            (phone, email, password_hash, full_name)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, email, full_name, created_at
+        """, (phone, email, password_hash, full_name))
+        
+        user = cur.fetchone()
+        conn.commit()
+        
+        token = generate_token()
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({
+                'message': 'Регистрация успешна',
+                'token': token,
+                'user': {
+                    'id': user['id'],
+                    'email': user['email'],
+                    'full_name': user['full_name'],
+                    'created_at': user['created_at'].isoformat() if user['created_at'] else None
+                }
+            }),
+            'isBase64Encoded': False
+        }
+    
+    finally:
+        cur.close()
+        conn.close()
+
+def login_user(body: dict) -> dict:
+    email = body.get('email')
+    password = body.get('password')
+    
+    if not email or not password:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Укажите email и пароль'}),
             'isBase64Encoded': False
         }
     
@@ -207,9 +278,9 @@ def login_user(body: dict) -> dict:
     
     try:
         cur.execute("""
-            SELECT id, phone, password_hash, full_name, created_at 
-            FROM users WHERE phone = %s
-        """, (phone,))
+            SELECT id, email, password_hash, full_name, created_at 
+            FROM t_p2283616_event_discovery_app.users WHERE email = %s
+        """, (email,))
         
         user = cur.fetchone()
         
@@ -217,23 +288,15 @@ def login_user(body: dict) -> dict:
             return {
                 'statusCode': 401,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Пользователь не найден'}),
+                'body': json.dumps({'error': 'Неверный email или пароль'}),
                 'isBase64Encoded': False
             }
         
-        if not user['password_hash'] or user['password_hash'] == '':
+        if not user['password_hash'] or not verify_password(user['password_hash'], password):
             return {
                 'statusCode': 401,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Используйте вход через SMS'}),
-                'isBase64Encoded': False
-            }
-        
-        if not verify_password(user['password_hash'], password):
-            return {
-                'statusCode': 401,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Неверный пароль'}),
+                'body': json.dumps({'error': 'Неверный email или пароль'}),
                 'isBase64Encoded': False
             }
         
@@ -247,11 +310,136 @@ def login_user(body: dict) -> dict:
                 'token': token,
                 'user': {
                     'id': user['id'],
-                    'phone': user['phone'],
+                    'email': user['email'],
                     'full_name': user['full_name'],
                     'created_at': user['created_at'].isoformat() if user['created_at'] else None
                 }
             }),
+            'isBase64Encoded': False
+        }
+    
+    finally:
+        cur.close()
+        conn.close()
+
+def request_password_reset(body: dict) -> dict:
+    email = body.get('email')
+    
+    if not email:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Укажите email'}),
+            'isBase64Encoded': False
+        }
+    
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        cur.execute("SELECT id FROM t_p2283616_event_discovery_app.users WHERE email = %s", (email,))
+        user = cur.fetchone()
+        
+        if not user:
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Если email существует, письмо будет отправлено'}),
+                'isBase64Encoded': False
+            }
+        
+        reset_token = generate_token()
+        expires_at = datetime.now() + timedelta(hours=1)
+        
+        cur.execute("""
+            INSERT INTO t_p2283616_event_discovery_app.password_reset_tokens (user_id, token, expires_at)
+            VALUES (%s, %s, %s)
+        """, (user['id'], reset_token, expires_at))
+        conn.commit()
+        
+        print(f"Ссылка для восстановления пароля: {reset_token}")
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({
+                'message': 'Ссылка для восстановления отправлена на email',
+                'reset_token': reset_token
+            }),
+            'isBase64Encoded': False
+        }
+    
+    finally:
+        cur.close()
+        conn.close()
+
+def reset_password(body: dict) -> dict:
+    token = body.get('token')
+    new_password = body.get('password')
+    
+    if not token or not new_password:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Укажите токен и новый пароль'}),
+            'isBase64Encoded': False
+        }
+    
+    if len(new_password) < 6:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Пароль должен быть не менее 6 символов'}),
+            'isBase64Encoded': False
+        }
+    
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        cur.execute("""
+            SELECT user_id, expires_at 
+            FROM t_p2283616_event_discovery_app.password_reset_tokens 
+            WHERE token = %s
+        """, (token,))
+        
+        reset_data = cur.fetchone()
+        
+        if not reset_data:
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Неверный токен'}),
+                'isBase64Encoded': False
+            }
+        
+        if reset_data['expires_at'] < datetime.now():
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Токен истёк'}),
+                'isBase64Encoded': False
+            }
+        
+        password_hash = hash_password(new_password)
+        
+        cur.execute("""
+            UPDATE t_p2283616_event_discovery_app.users 
+            SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (password_hash, reset_data['user_id']))
+        
+        cur.execute("""
+            DELETE FROM t_p2283616_event_discovery_app.password_reset_tokens 
+            WHERE user_id = %s
+        """, (reset_data['user_id'],))
+        
+        conn.commit()
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'message': 'Пароль успешно изменён'}),
             'isBase64Encoded': False
         }
     

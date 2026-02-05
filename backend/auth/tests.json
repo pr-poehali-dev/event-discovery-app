@@ -1,16 +1,23 @@
 {
   "tests": [
     {
-      "name": "Send SMS code",
+      "name": "Register new user",
       "method": "POST",
       "path": "/",
       "body": {
-        "action": "send_sms",
-        "phone": "+79999999999"
+        "action": "register",
+        "email": "test@example.com",
+        "password": "testpass123",
+        "full_name": "Test User"
       },
       "expectedStatus": 200,
       "expectedBody": {
-        "message": "string"
+        "message": "string",
+        "token": "string",
+        "user": {
+          "id": "number",
+          "email": "string"
+        }
       },
       "bodyMatcher": "partial"
     },
@@ -20,7 +27,7 @@
       "path": "/",
       "body": {
         "action": "login",
-        "phone": "+79999999999",
+        "email": "test@example.com",
         "password": "wrongpass"
       },
       "expectedStatus": 401,
